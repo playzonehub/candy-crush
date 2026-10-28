@@ -1,0 +1,686 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Candy Crush - Match 3 Puzzle</title>
+<style>
+:root {
+  --pink: #ff4fa3;
+  --purple: #7138c8;
+  --dark: #28134f;
+  --glass: rgba(255,255,255,.16);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, Arial, sans-serif;
+  color: white;
+  background:
+    radial-gradient(ellipse at 10% 10%, #ffb4d8 0, transparent 35%),
+    radial-gradient(ellipse at 90% 80%, #ffc6e8 0, transparent 35%),
+    linear-gradient(140deg,#7437cb,#e34bba,#ff8caa);
+  padding: 14px 10px 28px;
+  overflow-x: hidden;
+}
+button, select { font: inherit; }
+button {
+  border: 0;
+  cursor: pointer;
+  color: white;
+  font-weight: 800;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+button:active { transform: scale(.96); }
+.app { width: min(100%, 520px); margin: auto; }
+header { text-align: center; padding: 4px 0 15px; }
+.logo {
+  font-size: clamp(30px,8vw,48px);
+  font-weight: 1000;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  text-shadow: 0 4px 0 #9d267c, 0 7px 16px #54186c;
+}
+.logo span { color: #fff66a; }
+.subtitle { font-size: 12px; font-weight: 800; letter-spacing: 3px; margin-top: 8px; }
+.panel {
+  background: rgba(49,17,91,.63);
+  border: 2px solid rgba(255,255,255,.3);
+  border-radius: 22px;
+  padding: 13px;
+  box-shadow: 0 9px 25px #3b105b40;
+  backdrop-filter: blur(9px);
+}
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+.modebox label { display: block; font-size: 11px; margin-bottom: 5px; opacity: .85; font-weight: 800; }
+select {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #ffffff50;
+  border-radius: 11px;
+  background: #54278b;
+  color: white;
+  font-weight: 800;
+  outline: none;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 7px;
+  margin-bottom: 11px;
+}
+.stat {
+  text-align: center;
+  padding: 9px 3px;
+  border-radius: 14px;
+  background: var(--glass);
+  border: 1px solid #ffffff30;
+}
+.stat small { display: block; font-size: 10px; font-weight: 900; opacity: .85; }
+.stat strong { display: block; font-size: clamp(19px,5vw,25px); line-height: 1.35; }
+.targetline { display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin: 0 2px 6px; }
+.progress {
+  height: 10px; border-radius: 20px; overflow:hidden;
+  background:#ffffff35; margin-bottom: 12px;
+}
+#progressFill {
+  height:100%; width:0%; border-radius:20px;
+  background:linear-gradient(90deg,#fff36b,#ffb0ed);
+  transition:width .25s;
+}
+.board-wrap {
+  padding: 7px;
+  background: linear-gradient(145deg,#ffb9e2,#bda0ff);
+  border-radius: 19px;
+  border: 3px solid #ffffffa0;
+  position: relative;
+}
+#board {
+  display: grid;
+  grid-template-columns: repeat(8,minmax(0,1fr));
+  gap: 3px;
+  width: 100%;
+  aspect-ratio: 1;
+  touch-action: none;
+  user-select: none;
+}
+.cell {
+  min-width:0; min-height:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius: 9px;
+  background: #5a247f50;
+  border: 1px solid #ffffff18;
+  position:relative;
+  padding: 0;
+  transition: background .12s, transform .12s;
+}
+.cell.selected {
+  background:#fff4a9a0;
+  outline: 3px solid white;
+  z-index:2;
+  transform:scale(.94);
+}
+.candy {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:88%; height:88%;
+  font-size:clamp(19px,5.8vw,34px);
+  border-radius:30%;
+  filter: drop-shadow(0 3px 1px #42114c45);
+  text-shadow: 0 2px 2px #43104b25;
+  transition: transform .12s;
+}
+.cell:active .candy { transform:scale(.87); }
+.cell.matched .candy { animation: pop .22s ease-in forwards; }
+@keyframes pop {
+  0% {transform:scale(1);opacity:1}
+  100% {transform:scale(.15) rotate(35deg);opacity:0}
+}
+.board-wrap.shake { animation: shake .25s; }
+@keyframes shake {
+  25%,75% {transform:translateX(-3px)}
+  50% {transform:translateX(3px)}
+}
+.message {
+  min-height: 32px;
+  display:flex; align-items:center; justify-content:center;
+  text-align:center;
+  font-size:13px; font-weight:850;
+  padding: 7px 0 2px;
+}
+.actions {
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+.action {
+  padding:12px 5px;
+  border-radius:13px;
+  background:linear-gradient(180deg,#ff79c0,#e43b9c);
+  box-shadow:0 4px 0 #a82270;
+  font-size:12px;
+}
+.action.secondary {
+  background:linear-gradient(180deg,#9f7bff,#7144d5);
+  box-shadow:0 4px 0 #48278c;
+}
+.instructions {
+  font-size:12px; text-align:center; line-height:1.7;
+  opacity:.9; padding:13px 6px 3px;
+}
+footer { text-align:center; padding:15px 0 0; font-size:11px; opacity:.8; }
+.overlay {
+  position:absolute; inset:7px; z-index:5;
+  background:#30104deF; border-radius:14px;
+  display:none; flex-direction:column; align-items:center;
+  justify-content:center; text-align:center; padding:20px;
+}
+.overlay.show { display:flex; }
+.overlay h2 { font-size:30px; margin:0 0 8px; }
+.overlay p { line-height:1.6; font-size:14px; }
+.overlay button {
+  border-radius:14px; padding:13px 24px;
+  background:linear-gradient(180deg,#ff87c7,#e32c91);
+  box-shadow:0 4px 0 #992068;
+}
+@media(min-width:600px) {
+  body { padding-top:25px; }
+  .panel { padding:17px; }
+  .cell { border-radius:11px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">🍭 CANDY <span>MATCH!</span></div>
+  <div class="subtitle">SWAP • MATCH • WIN</div>
+</header>
+
+<main class="panel">
+  <div class="toolbar">
+    <div class="modebox">
+      <label for="mode">GAME MODE</label>
+      <select id="mode">
+        <option value="levels">🏆 Level Mode</option>
+        <option value="endless">♾️ Endless Mode</option>
+      </select>
+    </div>
+    <div class="modebox">
+      <label for="difficulty">CHALLENGE</label>
+      <select id="difficulty">
+        <option value="easy">🍬 Sweet</option>
+        <option value="normal" selected>🍭 Classic</option>
+        <option value="hard">🔥 Hard</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><small>⭐ SCORE</small><strong id="score">0</strong></div>
+    <div class="stat"><small id="middleLabel">🎯 TARGET</small><strong id="target">500</strong></div>
+    <div class="stat"><small>👣 MOVES</small><strong id="moves">25</strong></div>
+  </div>
+
+  <div class="targetline">
+    <span id="levelLabel">Level 1</span>
+    <span id="progressText">0 / 500</span>
+  </div>
+  <div class="progress"><div id="progressFill"></div></div>
+
+  <div class="board-wrap" id="boardWrap">
+    <div id="board" role="grid" aria-label="Candy matching board"></div>
+    <div class="overlay" id="overlay">
+      <div id="overlayIcon" style="font-size:48px">🍬</div>
+      <h2 id="overlayTitle">Sweet!</h2>
+      <p id="overlayText">Ready to play?</p>
+      <button id="overlayBtn">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <div class="message" id="message" aria-live="polite">Swap two neighboring candies to match 3!</div>
+
+  <div class="actions">
+    <button class="action" id="restart">🔄 Restart</button>
+    <button class="action secondary" id="sound">🔊 Sound ON</button>
+    <button class="action secondary" id="hint">💡 Hint</button>
+  </div>
+  <div class="instructions">
+    👆 Tap a candy, then tap a neighbor to swap.<br>
+    Match 3 or more candies of the same kind.<br>
+    Bigger matches and cascades earn bonus points!
+  </div>
+</main>
+<footer>🍬 CANDY MATCH PUZZLE • HAVE A SWEET TIME 🍬</footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const SIZE = 8;
+const TYPES = [
+  {emoji:"🍓", color:"#ff709c"},
+  {emoji:"🍋", color:"#ffe36a"},
+  {emoji:"🍇", color:"#c59bff"},
+  {emoji:"🍏", color:"#8cf2a3"},
+  {emoji:"🫐", color:"#8edbff"},
+  {emoji:"🍊", color:"#ffb26d"}
+];
+
+const $ = id => document.getElementById(id);
+const boardEl = $("board");
+const wrap = $("boardWrap");
+const scoreEl = $("score");
+const targetEl = $("target");
+const movesEl = $("moves");
+const levelLabel = $("levelLabel");
+const progressText = $("progressText");
+const progressFill = $("progressFill");
+const messageEl = $("message");
+const modeEl = $("mode");
+const difficultyEl = $("difficulty");
+const overlay = $("overlay");
+
+let board = [];
+let score = 0;
+let moves = 25;
+let level = 1;
+let target = 500;
+let selected = null;
+let busy = false;
+let ended = false;
+let soundOn = true;
+let audioCtx = null;
+let best = loadBest();
+let hintTimer = null;
+
+function loadBest() {
+  try { return Number(localStorage.getItem("candyMatchBest")) || 0; }
+  catch(e) { return 0; }
+}
+function saveBest() {
+  try { localStorage.setItem("candyMatchBest", String(best)); }
+  catch(e) {}
+}
+function randomCandy() {
+  return Math.floor(Math.random() * TYPES.length);
+}
+function getDifficulty() {
+  return difficultyEl.value;
+}
+function movesPerLevel() {
+  return getDifficulty() === "easy" ? 30 :
+         getDifficulty() === "hard" ? 18 : 25;
+}
+function targetForLevel(n) {
+  const base = getDifficulty() === "easy" ? 350 :
+               getDifficulty() === "hard" ? 700 : 500;
+  return Math.round(base * Math.pow(1.32, n - 1));
+}
+function randomBoard() {
+  board = Array(SIZE * SIZE).fill(null);
+  for (let i = 0; i < board.length; i++) {
+    let c, tries = 0;
+    do {
+      c = randomCandy();
+      tries++;
+    } while (
+      tries < 30 &&
+      ((i % SIZE >= 2 && board[i-1] === c && board[i-2] === c) ||
+       (i >= SIZE * 2 && board[i-SIZE] === c && board[i-SIZE*2] === c))
+    );
+    board[i] = c;
+  }
+  if (!hasPossibleMove()) {
+    randomBoard();
+  }
+}
+function idx(r,c) { return r * SIZE + c; }
+function adjacent(a,b) {
+  const ar = Math.floor(a / SIZE), ac = a % SIZE;
+  const br = Math.floor(b / SIZE), bc = b % SIZE;
+  return Math.abs(ar-br) + Math.abs(ac-bc) === 1;
+}
+function findMatches() {
+  const found = new Set();
+
+  for (let r = 0; r < SIZE; r++) {
+    let c = 0;
+    while (c < SIZE) {
+      const start = c;
+      const type = board[idx(r,c)];
+      while (c < SIZE && board[idx(r,c)] === type) c++;
+      if (type !== null && c - start >= 3) {
+        for (let x = start; x < c; x++) found.add(idx(r,x));
+      }
+    }
+  }
+
+  for (let c = 0; c < SIZE; c++) {
+    let r = 0;
+    while (r < SIZE) {
+      const start = r;
+      const type = board[idx(r,c)];
+      while (r < SIZE && board[idx(r,c)] === type) r++;
+      if (type !== null && r - start >= 3) {
+        for (let x = start; x < r; x++) found.add(idx(x,c));
+      }
+    }
+  }
+  return found;
+}
+function hasPossibleMove() {
+  for (let i = 0; i < board.length; i++) {
+    for (const j of [i+1, i+SIZE]) {
+      if (j >= board.length) continue;
+      if (!adjacent(i,j)) continue;
+      [board[i],board[j]] = [board[j],board[i]];
+      const match = findMatches().size > 0;
+      [board[i],board[j]] = [board[j],board[i]];
+      if (match) return true;
+    }
+  }
+  return false;
+}
+function render() {
+  boardEl.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  board.forEach((type, i) => {
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "cell";
+    cell.setAttribute("role","gridcell");
+    cell.setAttribute("aria-label", type === null ? "Empty" : TYPES[type].emoji);
+    cell.dataset.index = i;
+    if (i === selected) cell.classList.add("selected");
+    if (type !== null) {
+      const candy = document.createElement("span");
+      candy.className = "candy";
+      candy.textContent = TYPES[type].emoji;
+      candy.style.background =
+        `radial-gradient(circle at 30% 22%,#ffffffb0,transparent 40%),linear-gradient(145deg,${TYPES[type].color},${TYPES[type].color}aa)`;
+      cell.appendChild(candy);
+    }
+    frag.appendChild(cell);
+  });
+  boardEl.appendChild(frag);
+  updateUI();
+}
+function updateUI() {
+  scoreEl.textContent = score.toLocaleString();
+  movesEl.textContent = moves;
+  targetEl.textContent = modeEl.value === "levels" ? target.toLocaleString() : "∞";
+  levelLabel.textContent = modeEl.value === "levels" ? "🏆 Level " + level : "♾️ Endless Mode";
+  $("middleLabel").textContent = modeEl.value === "levels" ? "🎯 TARGET" : "🏅 BEST";
+  if (modeEl.value === "endless") {
+    targetEl.textContent = best.toLocaleString();
+    progressText.textContent = "Best: " + best.toLocaleString();
+    progressFill.style.width = best ? Math.min(100, score / best * 100) + "%" : "0%";
+  } else {
+    progressText.textContent = Math.min(score,target).toLocaleString() + " / " + target.toLocaleString();
+    progressFill.style.width = Math.min(100, score / target * 100) + "%";
+  }
+}
+function say(text) { messageEl.textContent = text; }
+
+function playTone(freq=600, duration=.09, type="sine") {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e) {}
+}
+function beepMatch(combo) {
+  playTone(450 + Math.min(combo,6)*110,.12,"sine");
+}
+function shuffleBoard() {
+  randomBoard();
+  selected = null;
+  render();
+  say("Fresh candies! Find a match 🍬");
+}
+function startGame(resetLevel=true) {
+  clearTimeout(hintTimer);
+  if (resetLevel) level = 1;
+  score = 0;
+  moves = movesPerLevel();
+  target = targetForLevel(level);
+  selected = null;
+  busy = false;
+  ended = false;
+  overlay.classList.remove("show");
+  randomBoard();
+  render();
+  say(modeEl.value === "levels" ? "Reach " + target + " points to win!" : "Endless mode: score as much as you can!");
+}
+function finishGame(won) {
+  ended = true;
+  busy = false;
+  selected = null;
+  if (score > best) {
+    best = score;
+    saveBest();
+  }
+  render();
+  $("overlayIcon").textContent = won ? "🏆" : "💔";
+  $("overlayTitle").textContent = won ? "Level Complete!" : "Game Over!";
+  $("overlayText").textContent = won
+    ? `Sweet victory! You scored ${score.toLocaleString()} points.`
+    : `Final score: ${score.toLocaleString()} points. Best: ${best.toLocaleString()}.`;
+  $("overlayBtn").textContent = won ? "NEXT LEVEL 🍬" : "TRY AGAIN 🔄";
+  overlay.classList.add("show");
+  playTone(won ? 850 : 180,.3, won ? "sine" : "triangle");
+}
+function afterMove() {
+  if (score > best) {
+    best = score;
+    saveBest();
+  }
+  updateUI();
+  if (modeEl.value === "levels" && score >= target) {
+    finishGame(true);
+  } else if (moves <= 0) {
+    finishGame(false);
+  }
+}
+function swap(a,b) {
+  [board[a],board[b]] = [board[b],board[a]];
+}
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function resolveMatches() {
+  let combo = 0;
+  while (true) {
+    const matches = findMatches();
+    if (!matches.size) break;
+
+    combo++;
+    matches.forEach(i => {
+      const cell = boardEl.children[i];
+      if (cell) cell.classList.add("matched");
+    });
+    score += matches.size * 10 * combo;
+    if (combo > 1) score += combo * 25;
+    say(combo > 1 ? `🍬 COMBO x${combo}! +${matches.size * 10 * combo} points!` : `Sweet match! +${matches.size * 10} points!`);
+    beepMatch(combo);
+    updateUI();
+    await wait(210);
+
+    matches.forEach(i => { board[i] = null; });
+    for (let c = 0; c < SIZE; c++) {
+      let write = SIZE - 1;
+      for (let r = SIZE - 1; r >= 0; r--) {
+        const i = idx(r,c);
+        if (board[i] !== null) {
+          board[idx(write,c)] = board[i];
+          write--;
+        }
+      }
+      while (write >= 0) {
+        board[idx(write,c)] = randomCandy();
+        write--;
+      }
+    }
+    render();
+    await wait(120);
+    if (modeEl.value === "levels" && score >= target) break;
+  }
+
+  if (!hasPossibleMove()) {
+    say("No matches available. Shuffling candies! 🔀");
+    await wait(250);
+    shuffleBoard();
+  }
+}
+async function trySwap(a,b) {
+  if (busy || ended || a === b || !adjacent(a,b)) return;
+  busy = true;
+  selected = null;
+  swap(a,b);
+  render();
+  await wait(100);
+
+  if (!findMatches().size) {
+    swap(a,b);
+    render();
+    wrap.classList.remove("shake");
+    void wrap.offsetWidth;
+    wrap.classList.add("shake");
+    say("No match! Try a different swap 😊");
+    playTone(180,.1,"triangle");
+    await wait(220);
+    busy = false;
+    return;
+  }
+
+  moves--;
+  playTone(650,.07,"sine");
+  await resolveMatches();
+  afterMove();
+  busy = false;
+  if (!ended) {
+    say(modeEl.value === "levels" ? "Keep matching! Reach the target ⭐" : "Keep going! Beat your best score 🏆");
+  }
+}
+
+boardEl.addEventListener("click", async e => {
+  const cell = e.target.closest(".cell");
+  if (!cell || busy || ended) return;
+  const i = Number(cell.dataset.index);
+  if (selected === null) {
+    selected = i;
+    render();
+    say("Now choose a neighboring candy 👆");
+    return;
+  }
+  if (selected === i) {
+    selected = null;
+    render();
+    return;
+  }
+  if (adjacent(selected,i)) {
+    const a = selected;
+    await trySwap(a,i);
+  } else {
+    selected = i;
+    render();
+    say("Choose a candy next to this one!");
+  }
+});
+
+// Drag/swipe support for touchscreens.
+let pointerStart = null;
+boardEl.addEventListener("pointerdown", e => {
+  const cell = e.target.closest(".cell");
+  if (!cell || busy || ended) return;
+  pointerStart = { index:Number(cell.dataset.index), x:e.clientX, y:e.clientY };
+});
+boardEl.addEventListener("pointerup", async e => {
+  if (!pointerStart || busy || ended) return;
+  const start = pointerStart;
+  pointerStart = null;
+  const dx = e.clientX - start.x, dy = e.clientY - start.y;
+  if (Math.max(Math.abs(dx),Math.abs(dy)) < 18) return;
+  const end = Math.abs(dx) > Math.abs(dy)
+    ? start.index + (dx > 0 ? 1 : -1)
+    : start.index + (dy > 0 ? SIZE : -SIZE);
+  if (end < 0 || end >= SIZE*SIZE || !adjacent(start.index,end)) return;
+  await trySwap(start.index,end);
+});
+
+$("restart").addEventListener("click", () => startGame(true));
+$("sound").addEventListener("click", () => {
+  soundOn = !soundOn;
+  $("sound").textContent = soundOn ? "🔊 Sound ON" : "🔇 Sound OFF";
+  if (soundOn) playTone(650,.1);
+});
+$("hint").addEventListener("click", () => {
+  if (busy || ended) return;
+  let found = null;
+  for (let i=0; i<board.length && !found; i++) {
+    for (const j of [i+1,i+SIZE]) {
+      if (j >= board.length || !adjacent(i,j)) continue;
+      swap(i,j);
+      if (findMatches().size) found = [i,j];
+      swap(i,j);
+      if (found) break;
+    }
+  }
+  if (!found) {
+    shuffleBoard();
+    return;
+  }
+  selected = found[0];
+  render();
+  const other = boardEl.children[found[1]];
+  if (other) other.classList.add("selected");
+  say("Try swapping the highlighted candy with its neighbor! 💡");
+});
+$("overlayBtn").addEventListener("click", () => {
+  if (modeEl.value === "levels" && score >= target) {
+    level++;
+    score = 0;
+    target = targetForLevel(level);
+    moves = movesPerLevel();
+    selected = null;
+    busy = false;
+    ended = false;
+    overlay.classList.remove("show");
+    randomBoard();
+    render();
+    say("Level " + level + "! New target: " + target.toLocaleString() + " points!");
+  } else {
+    startGame(true);
+  }
+});
+modeEl.addEventListener("change", () => startGame(true));
+difficultyEl.addEventListener("change", () => startGame(true));
+
+// Start the game.
+startGame(true);
+})();
+</script>
+</body>
+</html>
